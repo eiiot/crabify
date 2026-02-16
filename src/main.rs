@@ -192,6 +192,9 @@ fn handle_key_event(app: &mut App, key: crossterm::event::KeyEvent) {
         KeyCode::Char('s') => {
             app.toggle_like();
         }
+        KeyCode::Char('l') => {
+            app.toggle_like_now_playing();
+        }
 
         _ => {}
     }

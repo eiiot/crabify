@@ -33,7 +33,8 @@ pub fn render(f: &mut Frame) {
         ("p", "Previous track"),
         ("+", "Volume up"),
         ("-", "Volume down"),
-        ("s", "Toggle like"),
+        ("s", "Toggle like (selected)"),
+        ("l", "Toggle like (now playing)"),
         ("?", "Toggle help"),
     ];
 

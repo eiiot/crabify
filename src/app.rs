@@ -95,6 +95,9 @@ pub struct App {
 
     // Tick counter for polling
     tick_count: u32,
+
+    // Local progress interpolation
+    last_playback_update: Option<std::time::Instant>,
 }
 
 impl App {
@@ -124,6 +127,7 @@ impl App {
             loading: false,
             io_tx,
             tick_count: 0,
+            last_playback_update: None,
         }
     }
 
@@ -157,6 +161,7 @@ impl App {
                     }
                 }
                 self.now_playing = ctx;
+                self.last_playback_update = Some(std::time::Instant::now());
             }
             Action::PlaylistsLoaded(playlists) => {
                 self.playlists = playlists;
@@ -314,9 +319,8 @@ impl App {
                 } else {
                     // Play selected track in playlist context
                     if let Some(ref playlist_id) = self.selected_playlist_id {
-                        let context_uri = format!("spotify:playlist:{}", playlist_id);
                         self.dispatch_io(IoEvent::PlayTrackInContext {
-                            context_uri,
+                            context_uri: playlist_id.clone(),
                             offset: self.track_index,
                         });
                     }
@@ -335,8 +339,7 @@ impl App {
                     // Play selected search result
                     if let Some(track) = self.search_results.get(self.search_index) {
                         if let Some(ref id) = track.id {
-                            let uri = format!("spotify:track:{}", id);
-                            self.dispatch_io(IoEvent::PlayTrack(uri));
+                            self.dispatch_io(IoEvent::PlayTrack(id.to_string()));
                         }
                     }
                 }
@@ -344,12 +347,20 @@ impl App {
             Screen::LikedSongs => {
                 if let Some(saved_track) = self.liked_songs.get(self.liked_index) {
                     if let Some(ref id) = saved_track.track.id {
-                        let uri = format!("spotify:track:{}", id);
-                        self.dispatch_io(IoEvent::PlayTrack(uri));
+                        self.dispatch_io(IoEvent::PlayTrack(id.to_string()));
                     }
                 }
             }
         }
+    }
+
+    pub fn now_playing_track_id(&self) -> Option<String> {
+        self.now_playing.as_ref().and_then(|ctx| {
+            ctx.item.as_ref().and_then(|item| match item {
+                PlayableItem::Track(t) => t.id.as_ref().map(|id| id.to_string()),
+                _ => None,
+            })
+        })
     }
 
     pub fn toggle_like(&mut self) {
@@ -372,9 +383,20 @@ impl App {
                     .and_then(|t| t.track.id.as_ref())
                     .map(|id| id.to_string())
             }
-        };
+        }
+        .or_else(|| self.now_playing_track_id());
 
         if let Some(id) = track_id {
+            let currently_liked = self.liked_track_ids.contains(&id);
+            self.dispatch_io(IoEvent::ToggleLike {
+                track_id: id,
+                currently_liked,
+            });
+        }
+    }
+
+    pub fn toggle_like_now_playing(&mut self) {
+        if let Some(id) = self.now_playing_track_id() {
             let currently_liked = self.liked_track_ids.contains(&id);
             self.dispatch_io(IoEvent::ToggleLike {
                 track_id: id,
@@ -394,6 +416,27 @@ impl App {
                 PlayableItem::Episode(ep) => ep.name.clone(),
             })
         })
+    }
+
+    fn interpolated_progress_ms(&self) -> Option<(i64, i64)> {
+        let ctx = self.now_playing.as_ref()?;
+        let base_ms = ctx.progress.map(|d| d.num_milliseconds()).unwrap_or(0);
+        let duration_ms = ctx.item.as_ref().map(|item| match item {
+            PlayableItem::Track(t) => t.duration.num_milliseconds(),
+            PlayableItem::Episode(e) => e.duration.num_milliseconds(),
+        }).unwrap_or(0);
+
+        let elapsed = self.last_playback_update
+            .map(|t| t.elapsed().as_millis() as i64)
+            .unwrap_or(0);
+
+        let progress = if self.is_playing {
+            (base_ms + elapsed).min(duration_ms)
+        } else {
+            base_ms
+        };
+
+        Some((progress, duration_ms))
     }
 
     pub fn progress_fraction(&self) -> f64 {
@@ -422,22 +465,8 @@ impl App {
     }
 
     pub fn progress_text(&self) -> String {
-        self.now_playing
-            .as_ref()
-            .map(|ctx| {
-                let progress_ms = ctx
-                    .progress
-                    .map(|d| d.num_milliseconds())
-                    .unwrap_or(0);
-                let duration_ms = ctx
-                    .item
-                    .as_ref()
-                    .map(|item| match item {
-                        PlayableItem::Track(t) => t.duration.num_milliseconds(),
-                        PlayableItem::Episode(e) => e.duration.num_milliseconds(),
-                    })
-                    .unwrap_or(0);
-
+        self.interpolated_progress_ms()
+            .map(|(progress_ms, duration_ms)| {
                 format!(
                     "{} / {}",
                     format_duration(progress_ms),

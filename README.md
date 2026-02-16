@@ -1,4 +1,4 @@
-# crabify
+# 🦀 crabify
 
 ![crabify screenshot](assets/screenshot.png)
 
@@ -54,4 +54,4 @@ MIT
 
 ---
 
-Built with [Claude](https://claude.ai).
+Code in this repository was created with the use of Claude Code.

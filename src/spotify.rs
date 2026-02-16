@@ -101,15 +101,12 @@ impl SpotifyClient {
         use rspotify::model::PlayContextId;
 
         // Parse the context URI to determine the type
-        let context_id: PlayContextId = if context_uri.contains(":playlist:") {
-            let id = context_uri.split(':').last().unwrap_or("");
-            PlayContextId::Playlist(PlaylistId::from_id(id)?.into_static())
-        } else if context_uri.contains(":album:") {
-            let id = context_uri.split(':').last().unwrap_or("");
-            PlayContextId::Album(rspotify::model::AlbumId::from_id(id)?.into_static())
-        } else if context_uri.contains(":artist:") {
-            let id = context_uri.split(':').last().unwrap_or("");
-            PlayContextId::Artist(rspotify::model::ArtistId::from_id(id)?.into_static())
+        let context_id: PlayContextId = if context_uri.contains("playlist") {
+            PlayContextId::Playlist(PlaylistId::from_id_or_uri(context_uri)?.into_static())
+        } else if context_uri.contains("album") {
+            PlayContextId::Album(rspotify::model::AlbumId::from_id_or_uri(context_uri)?.into_static())
+        } else if context_uri.contains("artist") {
+            PlayContextId::Artist(rspotify::model::ArtistId::from_id_or_uri(context_uri)?.into_static())
         } else {
             anyhow::bail!("Unsupported context URI: {}", context_uri);
         };
@@ -125,8 +122,7 @@ impl SpotifyClient {
     }
 
     pub async fn play_track(&self, track_uri: &str) -> Result<()> {
-        let track_id = track_uri.split(':').last().unwrap_or(track_uri);
-        let track_id = TrackId::from_id(track_id)?;
+        let track_id = TrackId::from_id_or_uri(track_uri)?;
         let uris = [PlayableId::Track(track_id)];
         self.client
             .start_uris_playback(uris, None, None, None)
@@ -167,7 +163,7 @@ impl SpotifyClient {
     }
 
     pub async fn save_track(&self, track_id: &str) -> Result<()> {
-        let track_id = TrackId::from_id(track_id)?;
+        let track_id = TrackId::from_id_or_uri(track_id)?;
         self.client
             .current_user_saved_tracks_add([track_id])
             .await?;
@@ -175,7 +171,7 @@ impl SpotifyClient {
     }
 
     pub async fn remove_track(&self, track_id: &str) -> Result<()> {
-        let track_id = TrackId::from_id(track_id)?;
+        let track_id = TrackId::from_id_or_uri(track_id)?;
         self.client
             .current_user_saved_tracks_delete([track_id])
             .await?;
@@ -185,7 +181,7 @@ impl SpotifyClient {
     pub async fn check_saved_tracks(&self, track_ids: &[String]) -> Result<Vec<bool>> {
         let ids: Vec<TrackId> = track_ids
             .iter()
-            .filter_map(|id| TrackId::from_id(id).ok())
+            .filter_map(|id| TrackId::from_id_or_uri(id).ok())
             .collect();
         let result = self.client.current_user_saved_tracks_contains(ids).await?;
         Ok(result)

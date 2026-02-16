@@ -27,12 +27,21 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
     let play_icon = if app.is_playing { "▶" } else { "⏸" };
     let volume_str = format!("Vol: {}%", app.volume);
 
+    let is_liked = app.now_playing_track_id()
+        .map(|id| app.liked_track_ids.contains(&id))
+        .unwrap_or(false);
+    let heart = if is_liked { "♥" } else { "♡" };
+
     let line = Line::from(vec![
         Span::styled(
             format!(" {} ", play_icon),
             Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("{} ", heart),
+            Style::default().fg(if is_liked { Color::Red } else { Color::DarkGray }),
         ),
         Span::styled(
             track_name,
