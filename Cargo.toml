@@ -1,0 +1,29 @@
+[package]
+name = "crabify"
+version = "0.1.0"
+edition = "2021"
+description = "A terminal UI remote control for Spotify"
+license = "MIT"
+repository = "https://github.com/eiiot/crabify"
+keywords = ["spotify", "tui", "music", "terminal", "ratatui"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+rspotify = { version = "0.13", features = ["cli"] }
+tokio = { version = "1", features = ["full"] }
+tiny_http = "0.12"
+open = "5"
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+sha2 = "0.10"
+base64 = "0.22"
+rand = "0.8"
+url = "2"
+unicode-width = "0.2"
+chrono = "0.4"
+dotenvy = "0.15"
