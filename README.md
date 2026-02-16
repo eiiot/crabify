@@ -2,6 +2,10 @@
 
 A terminal UI remote control for Spotify, written in Rust. Crabify lets you browse your library, search for tracks, manage liked songs, and control playback on any active Spotify client (desktop, mobile, or web. It does not play audio itself.
 
+**This project is in alpha and may not work as expected.**
+
+Note: Spotify has currently paused the creation of new developer projects on their portal. If you don't already have a Spotify app registered, you may not be able to use crabify until this restriction is lifted.
+
 ## Requirements
 
 You need a Spotify account and a registered application in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). Create an app, note the Client ID, and add `http://127.0.0.1:8888/callback` as a redirect URI.
@@ -45,3 +49,7 @@ Run `crabify` with Spotify open on any device. The interface has three screens (
 ## License
 
 MIT
+
+---
+
+Built with [Claude](https://claude.ai).
